@@ -1,0 +1,38 @@
+1. use cookiecutter for template
+2. update/delete the files and folder if require inside src
+3. initializing the git at local
+3. create git hub repo with same name and add remote repo with local and push the existing files 
+4. connect dagshub with github repo and copy the experiment_id and other required code
+5. create the dagshub_setup.py inside notebooks folder and setup dagshub
+-------plan of project---
+we have tweet emotion data,first we will apply BoW and TfIdf with algoriths like logisticRegression,
+RandomForest, Xgb, etc which ever combination give good result, we take that combination and run
+hyperparameter tuining on that combination then use dvc pipeline and register the model.
+exp1- Bow + algos 
+exp2- TfIdf + algos
+exp3- hyperparameter tuning with best combination
+These experiments will be written in jupyterNotebook and tracked by dagshub
+
+6. In exp-1 , we used jupyternotebook to perform the experiment and tracked in dagshub using mlflow. here we run the logisticRegression Baseline model
+7. In exp-2 , we perform apply Bow and Tfidf as preprocessing and apply different models and find Bow and LoR is having better accuracy(f1 score).
+8. In exp-3, we  choose best combination and apply hyperparameter tuning at this combination. although, we can try hyperparameter tuning with all combination
+
+Now, we will create DVC pipeline along with best combiination model
+9. dvc init
+10. Adding dvc remote (local/s3), command is : dvc remote add -d myremote <path>
+11.  create a DVC pipeline
+    - data ingestion
+    - data preprocessing
+    - feature engineering
+    - model building
+    - model evaluation
+12. add dvc.yaml and params.yaml file and then run command to execute the pipeline "dvc repro"
+13. we are also logging the model in model_evaluation file in dagshub in each run, along with those experiments
+14. setup AWS s3 to store the dataset or data versions store
+     - pip install dvc[s3] awscli 
+     - dvc remote list   # to check avaialbe stores
+     - dvc remote remove <remote_name>
+     - aws configure  # to configure the aws
+
+15. the flow we run using dvc repro, and register the model in dagshub.
+16. then create the flask app and download the model from dagshub and use for prediction
