@@ -149,6 +149,71 @@ dvc add data/raw
 dvc push
 ```
 
+## Storing DVC Data in AWS S3 using AWS CLI
+
+To store your DVC-tracked data in an AWS S3 bucket, follow these steps:
+
+### 1. Install and Configure AWS CLI
+```bash
+pip install awscli  # or use your OS package manager
+aws configure
+# Enter your AWS Access Key, Secret Key, region, and output format when prompted
+```
+
+### 2. Install DVC S3 Support
+```bash
+pip install dvc_s3
+```
+
+### 3. Initialize DVC (if not already done)
+```bash
+dvc init
+```
+
+### 4. Add S3 as a DVC Remote
+```bash
+dvc remote add -d myremote s3://<your-bucket-name>
+# Example: dvc remote add -d myremote s3://aws-mlops-mini-project
+```
+
+### 5. (Optional) Set S3 Endpoint URL (for custom endpoints)
+```bash
+dvc remote modify myremote endpointurl https://s3.amazonaws.com
+```
+
+### 6. Track and Push Data
+```bash
+dvc add <data-or-model-file>
+dvc push
+```
+
+### 7. Typical Workflow Example
+```bash
+# Reproduce pipeline and push tracked files to S3
+dvc repro
+dvc push
+```
+
+### 8. Example Command History
+```
+dvc init
+dvc status
+dvc repro
+aws configure
+dvc remote add -d myremote s3://aws-mlops-mini-project
+dvc repro
+dvc status
+git status
+git add params.yaml dvc.lock
+dvc status
+dvc push
+pip install dvc_s3
+dvc push
+```
+
+This will ensure your DVC-tracked data and models are stored in your S3 bucket, making them accessible for collaboration and reproducibility.
+```
+
 ---
 
 ## Comprehensive README.md

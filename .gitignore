@@ -6,6 +6,7 @@ __pycache__/
 *.so
 *.pkl
 .dvc/
+*.csv
 
 # Distribution / packaging
 .Python
