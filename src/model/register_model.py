@@ -5,24 +5,25 @@ import mlflow
 import logging
 import os
 import dagshub
+from dotenv import load_dotenv
+load_dotenv()
 
 # Set up DagsHub credentials for MLflow tracking
-# dagshub_token = os.getenv("DAGSHUB_PAT")
-# if not dagshub_token:
-#     raise EnvironmentError("DAGSHUB_PAT environment variable is not set")
+dagshub_token = os.getenv("DAGSHUB_PAT")
+if not dagshub_token:
+    raise EnvironmentError("DAGSHUB_PAT environment variable is not set")
 
-# os.environ["MLFLOW_TRACKING_USERNAME"] = dagshub_token
-# os.environ["MLFLOW_TRACKING_PASSWORD"] = dagshub_token
+os.environ["MLFLOW_TRACKING_USERNAME"] = dagshub_token
+os.environ["MLFLOW_TRACKING_PASSWORD"] = dagshub_token
 
-# dagshub_url = "https://dagshub.com"
-# repo_owner = "campusx-official"
-# repo_name = "mlops-mini-project"
+dagshub_url = "https://dagshub.com"
+repo_owner = "campusx-official"
+repo_name = "CI-CD-Mlops-mini-project"
 
-# # Set up MLflow tracking URI
-# mlflow.set_tracking_uri(f'{dagshub_url}/{repo_owner}/{repo_name}.mlflow')
-mlflow.set_tracking_uri('https://dagshub.com/dhyanendra.manit/mlops-mini-project.mlflow')
-dagshub.init(repo_owner='dhyanendra.manit', repo_name='mlops-mini-project', mlflow=True)
-
+# Set up MLflow tracking URI
+mlflow.set_tracking_uri(f'{dagshub_url}/{repo_owner}/{repo_name}.mlflow')
+# mlflow.set_tracking_uri('https://dagshub.com/dhyanendra.manit/mlops-mini-project.mlflow')
+# dagshub.init(repo_owner='dhyanendra.manit', repo_name='mlops-mini-project', mlflow=True)
 
 # logging configuration
 logger = logging.getLogger('model_registration')
@@ -58,11 +59,15 @@ def load_model_info(file_path: str) -> dict:
 def register_model(model_name: str, model_info: dict):
     """Register the model to the MLflow Model Registry."""
     try:
+        # Detect if using DagsHub MLflow (which does not support Model Registry)
+        tracking_uri = mlflow.get_tracking_uri()
+        if 'dagshub.com' in tracking_uri:
+            logger.warning('Model Registry API is not supported on DagsHub MLflow. Skipping model registration.')
+            print('WARNING: Model Registry API is not supported on DagsHub MLflow. Skipping model registration.')
+            return
         model_uri = f"runs:/{model_info['run_id']}/{model_info['model_path']}"
-        
         # Register the model
         model_version = mlflow.register_model(model_uri, model_name)
-        
         # Transition the model to "Staging" stage
         client = mlflow.tracking.MlflowClient()
         client.transition_model_version_stage(
@@ -70,7 +75,6 @@ def register_model(model_name: str, model_info: dict):
             version=model_version.version,
             stage="Staging"
         )
-        
         logger.debug(f'Model {model_name} version {model_version.version} registered and transitioned to Staging.')
     except Exception as e:
         logger.error('Error during model registration: %s', e)
