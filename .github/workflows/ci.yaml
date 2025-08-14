@@ -21,4 +21,3 @@ jobs:
 
       - name: Run DVC pipeline
         run: dvc repro
-        working-directory: ./CI-CD-Mlops-mini-project
