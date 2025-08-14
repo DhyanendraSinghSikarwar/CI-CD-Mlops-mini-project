@@ -36,3 +36,21 @@ Now, we will create DVC pipeline along with best combiination model
 
 15. the flow we run using dvc repro, and register the model in dagshub.
 16. then create the flask app and download the model from dagshub and use for prediction
+
+# Create the CI pipeline 
+17. Add the dvc pipeline via github action (via CI), currently we are using authentication via 'dagshub.init' but it requires manual authentication
+So we can access dagshub using secrets, so we update the code
+
+    dagshub_token = os.getenv("DAGSHUB_PAT")
+    if not dagshub_token:
+        raise EnvironmentError("DAGSHUB_PAT environment variable is not set")
+
+    os.environ["MLFLOW_TRACKING_USERNAME"] = dagshub_token
+    os.environ["MLFLOW_TRACKING_PASSWORD"] = dagshub_token
+
+18. Now create the secret/token from dagshub and add this to github -> settings->secrets and variables->actions-> new repository secret
+19. update the ci.yaml file 
+    name: Run DVC pipeline
+        env:
+          DAGSHUB_PAT: ${{ secrets.DAGSHUB_PAT }}
+        run: dvc repro

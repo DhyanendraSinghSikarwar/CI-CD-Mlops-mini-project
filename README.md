@@ -59,6 +59,55 @@ Project Organization
 
 #  Commands and About the project:
 
+## End-to-End Flow: DVC, MLflow, DagsHub, Flask, and CI/CD
+
+### 15. Run the DVC Pipeline and Register the Model
+Use `dvc repro` to execute the pipeline, which will train and evaluate your model. The model and its metrics are logged to DagsHub via MLflow. (Note: DagsHub does not support MLflow Model Registry, but all models are stored as run artifacts.)
+
+### 16. Deploy with Flask and Download Model from DagsHub
+Create a Flask app for inference. Download the latest model artifact from DagsHub and use it for predictions in your API:
+```python
+# Example: Download model from DagsHub
+import dagshub
+dagshub.download_repo(
+        repo_owner="<your-username>",
+        repo_name="<your-repo>",
+        branch="main",
+        output_dir="./models"
+)
+# Load and use the model for prediction
+```
+
+### 17. CI Pipeline: Automate DVC Pipeline via GitHub Actions
+To automate the DVC pipeline in CI, add a step in your `.github/workflows/ci.yaml`:
+```yaml
+- name: Run DVC pipeline
+    env:
+        DAGSHUB_PAT: ${{ secrets.DAGSHUB_PAT }}
+    run: dvc repro
+```
+This ensures your pipeline runs on every push, using a secure token for authentication.
+
+### 18. Secure Authentication with DagsHub Token
+Instead of manual authentication, use a DagsHub Personal Access Token (PAT) as a GitHub Actions secret:
+1. Generate a PAT from your DagsHub account.
+2. In your GitHub repo, go to **Settings > Secrets and variables > Actions > New repository secret**.
+3. Name it `DAGSHUB_PAT` and paste your token.
+
+### 19. Update Your Code for CI Authentication
+In your Python code, use the following to authenticate with DagsHub/MLflow:
+```python
+import os
+dagshub_token = os.getenv("DAGSHUB_PAT")
+if not dagshub_token:
+        raise EnvironmentError("DAGSHUB_PAT environment variable is not set")
+os.environ["MLFLOW_TRACKING_USERNAME"] = dagshub_token
+os.environ["MLFLOW_TRACKING_PASSWORD"] = dagshub_token
+```
+This allows your pipeline and MLflow logging to work seamlessly in CI/CD environments.
+
+---
+
 ### Project Setup Commands
 ```bash
 # 1. Create project template
