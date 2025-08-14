@@ -94,6 +94,6 @@ target/
 
 # MLflow model artifacts
 notebooks/model_*
-model_*
+model_*/
 *.json
 *.pkl
