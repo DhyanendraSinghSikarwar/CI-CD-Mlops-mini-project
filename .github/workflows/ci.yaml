@@ -30,7 +30,7 @@ jobs:
       - name: Run DVC pipeline
         env:
           DAGSHUB_PAT: ${{ secrets.DAGSHUB_PAT }}
-        run: dvc 
+        run: dvc repro
       
       # - name: Run model tests
       #   env:
