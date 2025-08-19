@@ -77,4 +77,29 @@ if __name__ == "__main__":
 27. Now we will run the docker but we don't have the "DAGSHUB_PAT" key which is required in app.py
  So, we can send this in the command
  "docker run -p 8888:5000 -e DAGSHUB_PAT=<5e327750478b72352ed039dd541f17fc2d225a26> dhyanendra007/emotion1"
-28.
+28. Now to automate the docker , we will add 3 steps in ci.yaml
+   1. login to dockerhub
+   2. building the image --> dockerfile
+   3. push to dockerhub
+Steps to add in ci.yaml file:
+      - name: Log in to Docker Hub
+        if: success()
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      
+      - name: Build Docker image
+        if: success()
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/emotion2:latest .
+
+      - name: Push Docker image to Docker Hub
+        if: success()
+        run: |
+          docker push ${{ secrets.DOCKER_USERNAME }}/emotion2:latest
+29. First create the token and give read and write access from docker hub then add them in github secrets 
+    DOCKER_USERNAME : <name of the user>
+    DOCKER_PASSWORD : <token generated from docker hub>
+
+  
