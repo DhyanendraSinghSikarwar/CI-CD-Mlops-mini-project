@@ -88,18 +88,26 @@ mlflow.set_tracking_uri(f'{dagshub_url}/{repo_owner}/{repo_name}.mlflow')
 
 app = Flask(__name__)
 
-# load model from model registry
-def get_latest_model_version(model_name):
-    client = mlflow.MlflowClient()
-    latest_version = client.get_latest_versions(model_name, stages=["Production"])
-    if not latest_version:
-        latest_version = client.get_latest_versions(model_name, stages=["None"])
-    return latest_version[0].version if latest_version else None
 
-model_name = "my_model"
-model_version = get_latest_model_version(model_name)
+# Load latest model artifact tagged as 'production' from MLflow (DagsHub)
+def get_latest_production_model_uri():
+    client = mlflow.tracking.MlflowClient()
+    # Find the experiment id for 'dvc-pipeline'
+    experiment = mlflow.get_experiment_by_name("dvc-pipeline")
+    if experiment is None:
+        raise Exception("Experiment 'dvc-pipeline' not found.")
+    runs = client.search_runs(
+        experiment_ids=[experiment.experiment_id],
+        filter_string="tags.model_status = 'production'",
+        order_by=["attributes.start_time DESC"],
+        max_results=1
+    )
+    if not runs:
+        raise Exception("No production model found.")
+    run_id = runs[0].info.run_id
+    return f"runs:/{run_id}/model"
 
-model_uri = f'models:/{model_name}/{model_version}'
+model_uri = get_latest_production_model_uri()
 model = mlflow.pyfunc.load_model(model_uri)
 
 vectorizer = pickle.load(open('models/vectorizer.pkl','rb'))

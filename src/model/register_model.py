@@ -57,31 +57,20 @@ def load_model_info(file_path: str) -> dict:
         raise
 
 def register_model(model_name: str, model_info: dict):
-    """Register the model to the MLflow Model Registry."""
+    """Tag the MLflow run as 'production' (DagsHub does not support Model Registry)."""
     try:
-        # Detect if using DagsHub MLflow (which does not support Model Registry)
         tracking_uri = mlflow.get_tracking_uri()
         if 'dagshub.com' in tracking_uri:
-            logger.warning('Model Registry API is not supported on DagsHub MLflow. Skipping model registration.')
-            print('WARNING: Model Registry API is not supported on DagsHub MLflow. Skipping model registration.')
+            client = mlflow.tracking.MlflowClient()
+            run_id = model_info['run_id']
+            client.set_tag(run_id, "model_status", "production")
+            logger.info(f"Tagged run {run_id} as production.")
+            print(f"Tagged run {run_id} as production.")
             return
-        model_uri = f"runs:/{model_info['run_id']}/{model_info['model_path']}"
-        # Register the model
-        model_version = mlflow.register_model(model_uri, model_name)
-        # Transition the model to "Staging" stage
-        client = mlflow.tracking.MlflowClient()
-        client.transition_model_version_stage(
-            name=model_name,
-            version=model_version.version,
-            stage="Staging"
-        )
-        # with mlflow.start_run():
-        #     # Log the model
-        #     mlflow.sklearn.log_model(grid_search.best_estimator_, "Random Forest")
-            
-        logger.debug(f'Model {model_name} version {model_version.version} registered and transitioned to Staging.')
+        # If not on DagsHub, you could add model registry logic here for other MLflow servers
+        logger.info('Model Registry logic skipped (not implemented for non-DagsHub).')
     except Exception as e:
-        logger.error('Error during model registration: %s', e)
+        logger.error('Error during model tagging: %s', e)
         raise
 
 def main():
