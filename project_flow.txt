@@ -62,3 +62,19 @@ So we can access dagshub using secrets, so we update the code
 - Always load the model for inference from the MLflow run artifact tagged as "production".
 - Use a requirements.txt or conda.yaml to ensure consistent environments for training and serving.
 - For production, use a WSGI server (not Flask's built-in server).
+
+22. Now, we need to dockerize the project either the whole project or the part of it (like flask app only for prediction)
+  Here, we will dockerize the flask_app folder only, but it also require vector.pkl file and few libraries
+23. Since, current requirements.txt contain libraries required for whole project. So we will use "pipreqs" to get 
+  the required libraries to run particular folder and create the subset of requirements.txt file
+"pip install pipreqs"
+24. go to the flask_app/ folder and run "pipreqs . --force" this will generate separate requirements.txt inside flask_app
+25. we will add host="0.0.0.0" to access this application outside docker image
+if __name__ == "__main__":
+    app.run(debug=True, host="0.0.0.0")
+26. Now, create dockerfile in root directory and bulid the docker image from root directory
+ command used: "docker build -t dhyanendra007/emotion1 ." you can change the name <dhyanendra007/emotion1>
+27. Now we will run the docker but we don't have the "DAGSHUB_PAT" key which is required in app.py
+ So, we can send this in the command
+ "docker run -p 8888:5000 -e DAGSHUB_PAT=<5e327750478b72352ed039dd541f17fc2d225a26> dhyanendra007/emotion1"
+28.
