@@ -101,5 +101,10 @@ Steps to add in ci.yaml file:
 29. First create the token and give read and write access from docker hub then add them in github secrets 
     DOCKER_USERNAME : <name of the user>
     DOCKER_PASSWORD : <token generated from docker hub>
-
-  
+30. Now push the code to github, then 
+  1. first pipeline will excecute which generate the model and pushed to dagshub using dvc.yaml
+  2. model will tag as production
+  3. run model test 
+  4. take model from dagshub and perform flask test
+  5. login to docker , create the image and pushed to docker hub
+31.
