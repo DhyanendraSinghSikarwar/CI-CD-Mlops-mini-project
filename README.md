@@ -61,30 +61,36 @@ Project Organization
 
 ## End-to-End Flow: DVC, MLflow, DagsHub, Flask, and CI/CD
 
-### 15. Run the DVC Pipeline and Register the Model
-Use `dvc repro` to execute the pipeline, which will train and evaluate your model. The model and its metrics are logged to DagsHub via MLflow. (Note: DagsHub does not support MLflow Model Registry, but all models are stored as run artifacts.)
+### 15. Run the DVC Pipeline and Promote the Model
+Use `dvc repro` to execute the pipeline, which will train and evaluate your model. The model and its metrics are logged to DagsHub via MLflow. **DagsHub does not support the MLflow Model Registry.** Instead, the best model is promoted by tagging the MLflow run as `model_status=production`.
 
 ### 16. Deploy with Flask and Download Model from DagsHub
-Create a Flask app for inference. Download the latest model artifact from DagsHub and use it for predictions in your API:
+Create a Flask app for inference. The app should use the MLflow API to search for the latest run tagged as `model_status=production` and load the model artifact from that run:
 ```python
-# Example: Download model from DagsHub
-import dagshub
-dagshub.download_repo(
-        repo_owner="<your-username>",
-        repo_name="<your-repo>",
-        branch="main",
-        output_dir="./models"
+import mlflow
+client = mlflow.tracking.MlflowClient()
+experiment = mlflow.get_experiment_by_name("dvc-pipeline")
+runs = client.search_runs(
+    experiment_ids=[experiment.experiment_id],
+    filter_string="tags.model_status = 'production'",
+    order_by=["attributes.start_time DESC"],
+    max_results=1
 )
-# Load and use the model for prediction
+if not runs:
+    raise Exception("No production model found.")
+run_id = runs[0].info.run_id
+model_uri = f"runs:/{run_id}/model"
+model = mlflow.pyfunc.load_model(model_uri)
 ```
+This ensures your app always uses the latest production model.
 
 ### 17. CI Pipeline: Automate DVC Pipeline via GitHub Actions
 To automate the DVC pipeline in CI, add a step in your `.github/workflows/ci.yaml`:
 ```yaml
 - name: Run DVC pipeline
-    env:
-        DAGSHUB_PAT: ${{ secrets.DAGSHUB_PAT }}
-    run: dvc repro
+  env:
+    DAGSHUB_PAT: ${{ secrets.DAGSHUB_PAT }}
+  run: dvc repro
 ```
 This ensures your pipeline runs on every push, using a secure token for authentication.
 
@@ -100,7 +106,7 @@ In your Python code, use the following to authenticate with DagsHub/MLflow:
 import os
 dagshub_token = os.getenv("DAGSHUB_PAT")
 if not dagshub_token:
-        raise EnvironmentError("DAGSHUB_PAT environment variable is not set")
+    raise EnvironmentError("DAGSHUB_PAT environment variable is not set")
 os.environ["MLFLOW_TRACKING_USERNAME"] = dagshub_token
 os.environ["MLFLOW_TRACKING_PASSWORD"] = dagshub_token
 ```
