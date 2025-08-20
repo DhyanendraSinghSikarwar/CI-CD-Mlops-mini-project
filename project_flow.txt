@@ -141,4 +141,31 @@ and add the security group to ec2 instance and allow inbound traffic port 8888 o
   """
   4. Add EC2_HOST, EC2_USER, EC2_SSH_KEY, EC2_PORT in github secrets variables
   5. Now commit the changes and push
-            
+33. Now Deploy using AWS ECR instead of Docker hub
+  1. First, we will use local after push/pull the image from AWS ECR
+      1. first create IAM user and create cli -  id and password
+      2. then, install awscli at local "pip install awscli" and then run "aws configure"
+      3. now, create the AWS ECR repository , then click on "view push commands"  then run those commands (in first command it should return Login Succeeded)
+      4. run those commands to push the image into AWS ECR and replace push to pull to fetch image from any other cli after configure and succeeded login
+      5. Now run the below command in dettach mode (using -d to run server at bacjground)
+        "docker run -d -p 8888:5000 -e DAGSHUB_PAT=5e327750478b72352ed039dd541f17fc2d225a26 --name campusx-app 411353514887.dkr.ecr.ap-south-1.amazonaws.com/campusx-ecr:v1" (update from the above 4 commands)
+      6. to check logs "docker logs campusx-app" # campusx-app is the container name
+      7. to stop the current running container: "docker stop campusx-app"
+      8. to remove from containers: "docker rm campusx-app"
+  2. Now, we will use EC2 instance to run container
+      1. create EC2 instance and run below commands to install package
+          """
+          sudo apt-get update
+          sudo apt-get install -y docker.io
+          sudo sysytemctl start docker
+          sudo sysytemctl enable docker
+          sudo apt-get update
+          sudo apt-get install -y unzip curl
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+          unzip awscliv2.zip
+          sudo ./aws/install
+          sudo usermod -aG docker ubuntu
+          aws configure
+          """
+          then run 1st commands present in ECR's view push commands then replace push by pull and run the command in detachh mode as mentioned above
+      
