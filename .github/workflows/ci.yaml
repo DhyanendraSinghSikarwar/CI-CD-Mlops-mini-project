@@ -66,3 +66,19 @@ jobs:
         if: success()
         run: |
           docker push ${{ secrets.DOCKER_USERNAME }}/emotion2:latest
+      
+      - name: Deploy to EC2
+        if: success()
+        uses: appleboy/ssh-action@v0.1.8
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: ${{ secrets.EC2_PORT }}
+          script: |
+            docker pull ${{ secrets.DOCKER_USERNAME }}/emotion2:latest
+            docker stop my-app || true
+            docker rm my-app || true
+            docker run -d -p 80:80 --name my-app \
+              -e DAGSHUB_PAT=${{ secrets.DAGSHUB_PAT }} \
+              ${{ secrets.DOCKER_USERNAME }}/emotion2:latest

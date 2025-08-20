@@ -107,4 +107,38 @@ Steps to add in ci.yaml file:
   3. run model test 
   4. take model from dagshub and perform flask test
   5. login to docker , create the image and pushed to docker hub
-31.
+31. Now start the deployment:
+
+To run the command in EC2 instance to install docker
+    1 sudo apt-get update
+    2  sudo apt-get install -y docker.io
+    3  sudo systemctl start docker
+    4  sudo systemctl enable docker
+    5  sudo docker pull dhyanendra007/emotion2
+Now run the below command:
+"sudo docker run -p 8888:5000 -e DAGSHUB_PAT=5e327750478b72352ed039dd541f17fc2d225a26 dhyanendra007/emotion2"
+and add the security group to ec2 instance and allow inbound traffic port 8888 or as mentioned in the above command and use public DNS with http
+32. Now to integrate this deployment in CICD pipeline:
+   1. first, we need to run all above command in ec2
+   2. then run one command to not to use sudo everytime:"sudo usermod -aG docker ubuntu" since ubuntu is user selected while creating that instance
+   3. update the ci.yaml file:
+   """
+   - name: Deploy to EC2
+        if: success()
+        uses: appleboy/ssh-action@v0.1.8
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: ${{ secrets.EC2_PORT }}
+          script: |
+            docker pull ${{ secrets.DOCKER_USERNAME }}/emotion2:latest
+            docker stop my-app || true      # this will stop my-app container is already running (if no container present then True will handle the error)
+            docker rm my-app || true
+            docker run -d -p 80:80 --name my-app \        # --name my-app this will provide the name as my-app to the container
+              -e DAGSHUB_PAT=${{ secrets.DAGSHUB_PAT }} \
+              ${{ secrets.DOCKER_USERNAME }}/emotion2:latest 
+  """
+  4. Add EC2_HOST, EC2_USER, EC2_SSH_KEY, EC2_PORT in github secrets variables
+  5. Now commit the changes and push
+            
