@@ -415,3 +415,80 @@ dvc pull
    ```
 
 This setup provides complete reproducibility from experimentation to deployment with DVC pipeline management and MLflow tracking through DagsHub.
+
+------------------------
+# Now we will deploy our model in EC2 instance via docker hub using github action workflow
+
+## Docker, Docker Hub, and EC2 Deployment with CI/CD
+
+### 1. Docker Hub Authentication and GitHub Secrets
+- Create a Docker Hub access token with read/write permissions.
+- Add the following secrets to your GitHub repository:
+  - `DOCKER_USERNAME`: your Docker Hub username
+  - `DOCKER_PASSWORD`: your Docker Hub access token
+  - `DAGSHUB_PAT`: your DagsHub token (for model access)
+  - `EC2_HOST`: your EC2 public DNS or IP
+  - `EC2_USER`: the username for your EC2 instance (e.g., `ubuntu`)
+  - `EC2_SSH_KEY`: your EC2 private SSH key (as a secret)
+  - `EC2_PORT`: SSH port (default is 22)
+
+### 2. CI/CD Pipeline Steps (in GitHub Actions)
+1. Push code to GitHub.
+2. The pipeline will:
+   - Build and push the Docker image to Docker Hub.
+   - Run the DVC pipeline, generate and tag the model as production, and push to DagsHub.
+   - Run model and Flask app tests.
+   - Deploy the Docker image to your EC2 instance using SSH.
+
+Example workflow steps:
+```yaml
+- name: Push Docker image to Docker Hub
+  if: success()
+  run: |
+    docker push ${{ secrets.DOCKER_USERNAME }}/emotion2:latest
+
+- name: Deploy to EC2
+  if: success()
+  uses: appleboy/ssh-action@v0.1.8
+  with:
+    host: ${{ secrets.EC2_HOST }}
+    username: ${{ secrets.EC2_USER }}
+    key: ${{ secrets.EC2_SSH_KEY }}
+    port: ${{ secrets.EC2_PORT }}
+    script: |
+      docker pull ${{ secrets.DOCKER_USERNAME }}/emotion2:latest
+      docker stop my-app || true
+      docker rm my-app || true
+      docker run -d -p 80:5000 --name my-app \
+        -e DAGSHUB_PAT=${{ secrets.DAGSHUB_PAT }} \
+        ${{ secrets.DOCKER_USERNAME }}/emotion2:latest
+```
+
+### 3. Manual EC2 Setup (one-time)
+SSH into your EC2 instance and run:
+```bash
+sudo apt-get update
+sudo apt-get install -y docker.io
+sudo systemctl start docker
+sudo systemctl enable docker
+sudo docker pull <your-docker-username>/emotion2:latest
+```
+To run the container manually:
+```bash
+sudo docker run -p 8888:5000 -e DAGSHUB_PAT=<your-dagshub-pat> <your-docker-username>/emotion2:latest
+```
+- Make sure your EC2 security group allows inbound traffic on the port you expose (e.g., 8888 or 80).
+- Access the app via your EC2 public DNS and the chosen port.
+
+### 4. (Optional) Avoid Using `sudo` for Docker
+On EC2, add your user to the docker group:
+```bash
+sudo usermod -aG docker ubuntu
+```
+Log out and log back in for the change to take effect.
+
+### 5. CI/CD Deployment Integration
+- The GitHub Actions workflow will automatically deploy the latest Docker image to EC2 after a successful build and test.
+- Ensure all required secrets are set in your GitHub repository.
+- The deployment step will pull, stop, remove, and run the new container as `my-app`.
+
